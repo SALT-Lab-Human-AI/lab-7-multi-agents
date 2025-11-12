@@ -341,6 +341,15 @@ def main(destination: str = "Iceland", trip_duration: str = "5 days",
         print("❌ Configuration validation failed. Please set up your .env file.")
         exit(1)
 
+    # Set environment variables for CrewAI (it reads from os.environ)
+    # CrewAI uses OPENAI_API_KEY and OPENAI_API_BASE environment variables
+    os.environ["OPENAI_API_KEY"] = Config.API_KEY
+    os.environ["OPENAI_API_BASE"] = Config.API_BASE
+    
+    # For Groq compatibility, also set OPENAI_MODEL_NAME
+    if Config.USE_GROQ:
+        os.environ["OPENAI_MODEL_NAME"] = Config.OPENAI_MODEL
+
     print("✅ Configuration validated successfully!")
     print()
     Config.print_summary()

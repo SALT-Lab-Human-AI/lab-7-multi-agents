@@ -61,3 +61,8 @@ Thumbs.db
 
 # Dependencies
 node_modules/
+
+# Output files from demos
+workflow_outputs_*.txt
+summary_*.txt
+crewai_output_*.txt

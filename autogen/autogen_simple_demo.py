@@ -27,7 +27,7 @@ class SimpleInterviewPlatformWorkflow:
             print("ERROR: Configuration validation failed!")
             exit(1)
 
-        self.client = OpenAI(api_key=Config.OPENAI_API_KEY, base_url=Config.OPENAI_API_BASE)
+        self.client = OpenAI(api_key=Config.API_KEY, base_url=Config.API_BASE)
         self.outputs = {}
         self.model = Config.OPENAI_MODEL
 
@@ -79,7 +79,7 @@ List their key features and identify market gaps in 150 words."""
 
         self.outputs["research"] = response.choices[0].message.content
         print("\n[ResearchAgent Output]")
-        print(self.outputs["research"][:500] + "..." if len(self.outputs["research"]) > 500 else self.outputs["research"])
+        print(self.outputs["research"])
 
     def phase_analysis(self):
         """Phase 2: Opportunity Analysis"""
@@ -109,7 +109,7 @@ Now identify market opportunities and gaps."""
 
         self.outputs["analysis"] = response.choices[0].message.content
         print("\n[AnalysisAgent Output]")
-        print(self.outputs["analysis"][:500] + "..." if len(self.outputs["analysis"]) > 500 else self.outputs["analysis"])
+        print(self.outputs["analysis"])
 
     def phase_blueprint(self):
         """Phase 3: Product Blueprint"""
@@ -141,7 +141,7 @@ Create a product blueprint for our platform."""
 
         self.outputs["blueprint"] = response.choices[0].message.content
         print("\n[BlueprintAgent Output]")
-        print(self.outputs["blueprint"][:500] + "..." if len(self.outputs["blueprint"]) > 500 else self.outputs["blueprint"])
+        print(self.outputs["blueprint"])
 
     def phase_review(self):
         """Phase 4: Strategic Review"""
@@ -171,7 +171,7 @@ Provide strategic review and recommendations."""
 
         self.outputs["review"] = response.choices[0].message.content
         print("\n[ReviewerAgent Output]")
-        print(self.outputs["review"][:500] + "..." if len(self.outputs["review"]) > 500 else self.outputs["review"])
+        print(self.outputs["review"])
 
     def print_summary(self):
         """Print final summary"""
@@ -190,7 +190,64 @@ Each agent received context from the previous agent's output,
 demonstrating the sequential workflow pattern of AutoGen.
 """)
 
-        print(f"End Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        # Print full results
+        print("\n" + "="*80)
+        print("FULL RESULTS - ALL PHASES")
+        print("="*80)
+        
+        print("\n" + "-"*80)
+        print("PHASE 1: MARKET RESEARCH (Full Output)")
+        print("-"*80)
+        print(self.outputs["research"])
+        
+        print("\n" + "-"*80)
+        print("PHASE 2: OPPORTUNITY ANALYSIS (Full Output)")
+        print("-"*80)
+        print(self.outputs["analysis"])
+        
+        print("\n" + "-"*80)
+        print("PHASE 3: PRODUCT BLUEPRINT (Full Output)")
+        print("-"*80)
+        print(self.outputs["blueprint"])
+        
+        print("\n" + "-"*80)
+        print("PHASE 4: STRATEGIC REVIEW (Full Output)")
+        print("-"*80)
+        print(self.outputs["review"])
+
+        # Save to file
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_file = f"workflow_outputs_{timestamp}.txt"
+        with open(output_file, 'w') as f:
+            f.write("="*80 + "\n")
+            f.write("AUTOGEN INTERVIEW PLATFORM WORKFLOW - FULL RESULTS\n")
+            f.write("="*80 + "\n")
+            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Model: {self.model}\n\n")
+            
+            f.write("\n" + "-"*80 + "\n")
+            f.write("PHASE 1: MARKET RESEARCH\n")
+            f.write("-"*80 + "\n")
+            f.write(self.outputs["research"] + "\n")
+            
+            f.write("\n" + "-"*80 + "\n")
+            f.write("PHASE 2: OPPORTUNITY ANALYSIS\n")
+            f.write("-"*80 + "\n")
+            f.write(self.outputs["analysis"] + "\n")
+            
+            f.write("\n" + "-"*80 + "\n")
+            f.write("PHASE 3: PRODUCT BLUEPRINT\n")
+            f.write("-"*80 + "\n")
+            f.write(self.outputs["blueprint"] + "\n")
+            
+            f.write("\n" + "-"*80 + "\n")
+            f.write("PHASE 4: STRATEGIC REVIEW\n")
+            f.write("-"*80 + "\n")
+            f.write(self.outputs["review"] + "\n")
+        
+        print(f"\n💾 Full results saved to: {output_file}")
+
+        print(f"\nEnd Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("="*80)
 
 

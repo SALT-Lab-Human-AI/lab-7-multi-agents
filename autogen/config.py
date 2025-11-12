@@ -55,13 +55,12 @@ class Config(SharedConfig):
         """
         config = {
             "model": cls.OPENAI_MODEL,
-            "api_key": cls.OPENAI_API_KEY,
-            "api_type": "openai",
+            "api_key": cls.API_KEY,
+            "api_type": "openai",  # Works for both OpenAI and Groq
         }
 
-        # Only include api_base if it's not the default
-        if cls.OPENAI_API_BASE != "https://api.openai.com/v1":
-            config["api_base"] = cls.OPENAI_API_BASE
+        # Always include api_base (needed for Groq)
+        config["api_base"] = cls.API_BASE
 
         return [config]
 
@@ -91,7 +90,7 @@ Configuration Summary:
 - Temperature: {cls.AGENT_TEMPERATURE}
 - Output Directory: {cls.OUTPUT_DIR}
 - Verbose Mode: {cls.VERBOSE}
-- API Base: {cls.OPENAI_API_BASE}
+- API Base: {cls.API_BASE}
 - Timeout: {cls.AGENT_TIMEOUT}s
 - Max Tokens: {cls.AGENT_MAX_TOKENS}
 """
