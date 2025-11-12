@@ -1,5 +1,8 @@
 # 🤖 Multi-Agent Systems Lab: AutoGen vs. CrewAI
 
+## Basics and Fundamentals (!!Read this first!!)
+Before diving into the lab, please read through the [BASICS.md](BASICS.md) file to understand key concepts about multi-agent systems, architectures, and communication patterns. This foundational knowledge will help you grasp the implementations in this lab.
+
 ## 📚 Lab Overview
 
 This lab introduces **multi-agent systems** - where multiple AI agents collaborate to solve complex problems. You'll work with two popular frameworks (**AutoGen** and **CrewAI**) to build, compare, and understand how intelligent agents can work together.
