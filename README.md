@@ -1,5 +1,8 @@
 # 🤖 Multi-Agent Systems Lab: AutoGen vs. CrewAI
 
+## Basics and Fundamentals (!!Read this first!!)
+Before diving into the lab, please read through the [BASICS.md](BASICS.md) file to understand key concepts about multi-agent systems, architectures, and communication patterns. This foundational knowledge will help you grasp the implementations in this lab.
+
 ## 📚 Lab Overview
 
 This lab introduces **multi-agent systems** - where multiple AI agents collaborate to solve complex problems. You'll work with two popular frameworks (**AutoGen** and **CrewAI**) to build, compare, and understand how intelligent agents can work together.
@@ -322,50 +325,3 @@ OPENAI_API_KEY=sk-proj-xxxxx  # ✓ Correct
 - **AutoGen:** GitHub discussions at microsoft/autogen
 - **CrewAI:** GitHub issues at joaomdmoura/crewai
 
----
-
-## 💡 Key Takeaways
-
-1. **Different frameworks for different needs** - AutoGen for flexibility, CrewAI for clarity
-2. **Agents need context** - Good backstories and clear goals matter
-3. **Composition over complexity** - Build workflows from simple, focused agents
-4. **Observability is key** - Always log and review agent outputs
-5. **Start simple** - Begin with 2-3 agents before scaling
-
----
-
-## ✅ Checklist for Success
-
-- [ ] `.env` file created with your API key
-- [ ] Dependencies installed (`pip install -r requirements.txt`)
-- [ ] Configuration validated (`python shared_config.py`)
-- [ ] AutoGen demo runs (`python autogen/autogen_simple_demo.py`)
-- [ ] CrewAI demo runs (`python crewai/crewai_demo.py`)
-- [ ] Both frameworks executed successfully
-- [ ] Understood differences between AutoGen and CrewAI
-- [ ] Completed at least one custom exercise
-
----
-
-## 📝 Notes
-
-- **Configuration:** Both frameworks use the shared `.env` file at project root
-- **API Costs:** Running these demos uses OpenAI API credits - monitor your usage!
-- **Rate Limits:** OpenAI has rate limits - if you hit them, wait before retrying
-- **Reproducibility:** Set `AGENT_TEMPERATURE=0` for consistent outputs in `.env`
-
----
-
-## 🆘 Need Help?
-
-1. **Configuration issues?** Run `python shared_config.py` to validate
-2. **Import errors?** Make sure you're in the right directory and ran `pip install`
-3. **API errors?** Check your key at https://platform.openai.com/account/api-keys
-4. **Understanding agents?** Start with simpler examples before complex workflows
-5. **Stuck?** Review the code comments and agent backstories for clues
-
----
-
-**Created for:** IS-492 Multi-Agent Systems Lab
-**Last Updated:** November 2025
-**Duration:** ~2 hours for full completion
