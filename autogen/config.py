@@ -56,11 +56,8 @@ class Config(SharedConfig):
         config = {
             "model": cls.OPENAI_MODEL,
             "api_key": cls.API_KEY,
-            "api_type": "openai",  # Works for both OpenAI and Groq
+            "base_url": cls.API_BASE,
         }
-
-        # Always include api_base (needed for Groq)
-        config["api_base"] = cls.API_BASE
 
         return [config]
 
@@ -102,25 +99,21 @@ class AgentConfig:
     RESEARCH_AGENT = {
         "name": "ResearchAgent",
         "role": "Market Researcher",
-        "temperature": 0.7,
     }
 
     ANALYSIS_AGENT = {
         "name": "AnalysisAgent",
         "role": "Product Analyst",
-        "temperature": 0.7,
     }
 
     BLUEPRINT_AGENT = {
         "name": "BlueprintAgent",
         "role": "Product Designer",
-        "temperature": 0.7,
     }
 
     REVIEWER_AGENT = {
         "name": "ReviewerAgent",
         "role": "Product Reviewer",
-        "temperature": 0.7,
     }
 
     @classmethod
