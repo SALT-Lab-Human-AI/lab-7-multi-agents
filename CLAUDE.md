@@ -37,7 +37,11 @@ All configuration is centralized in two files:
 # In autogen/ directory
 from config import Config  # Extends shared_config
 config_list = Config.get_config_list()  # Returns list of dicts for LLM config
-# Agents chat conversationally, passing context back and forth
+llm_config = {"config_list": config_list, "temperature": Config.AGENT_TEMPERATURE}
+# Agents placed in GroupChat, GroupChatManager orchestrates conversation
+groupchat = autogen.GroupChat(agents=[...], messages=[], max_round=8)
+manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+user_proxy.initiate_chat(manager, message="...")
 ```
 
 **CrewAI Pattern:**
@@ -61,8 +65,7 @@ multi-agent/
 │
 ├── autogen/
 │   ├── config.py               # AutoGen-specific config (extends shared_config)
-│   ├── autogen_simple_demo.py  # Lightweight demo - run this first
-│   ├── autogen_interview_platform.py  # Full implementation (optional)
+│   ├── autogen_simple_demo.py  # GroupChat demo - run this
 │   └── README.md               # AutoGen-specific details
 │
 └── crewai/
@@ -91,9 +94,10 @@ python shared_config.py
 ```bash
 python autogen/autogen_simple_demo.py
 ```
-- Uses conversational agent interaction
-- Four agents (Research → Analysis → Blueprint → Review)
-- Focus: Understanding how agents chat back and forth
+- Uses GroupChat with GroupChatManager for true multi-agent conversation
+- Five participants: UserProxyAgent (initiator) + four AssistantAgents
+- LLM-based speaker selection decides who speaks each turn
+- Focus: Understanding conversational multi-agent collaboration
 
 **CrewAI Demo:**
 ```bash
@@ -154,7 +158,7 @@ python shared_config.py
 
 ### Add New Framework Features
 
-- **AutoGen:** Implement in `autogen_interview_platform.py` or `autogen_simple_demo.py`
+- **AutoGen:** Implement in `autogen_simple_demo.py`
 - **CrewAI:** Implement in `crewai_demo.py` (single comprehensive file)
 - Both have access to shared configuration - no duplication needed
 
@@ -170,9 +174,10 @@ All configuration changes go in `shared_config.py`:
 ### Agent Communication (AutoGen vs CrewAI)
 
 **AutoGen:**
-- Conversational: agents chat in turns, see full context
-- Flexible: agents can decide to continue, modify approach, iterate
-- File: `autogen_simple_demo.py` creates agents and calls `initiate_chat()`
+- GroupChat: all agents placed in a shared conversation
+- GroupChatManager uses LLM to select next speaker each turn
+- Agents see full conversation history and reference each other's contributions
+- File: `autogen_simple_demo.py` creates agents, GroupChat, and calls `user_proxy.initiate_chat(manager)`
 
 **CrewAI:**
 - Task-based: each agent receives structured task input
@@ -182,9 +187,9 @@ All configuration changes go in `shared_config.py`:
 ### Output Handling
 
 **AutoGen:**
-- Stores outputs in `self.outputs` dictionary by phase
-- Passes conversation history as context to next agent
-- Full conversation visible (logged in VERBOSE mode)
+- `groupchat.messages` contains full conversation history
+- `chat_result.summary` provides LLM-generated reflection summary
+- Saves conversation + summary to timestamped file
 
 **CrewAI:**
 - Returns `expected_output` from each task

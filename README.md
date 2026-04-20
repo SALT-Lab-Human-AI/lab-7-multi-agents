@@ -20,13 +20,13 @@ This lab introduces **multi-agent systems** - where multiple AI agents collabora
 ### Part 1: AutoGen - Product Planning Workflow
 **Scenario:** Build a product plan for an AI-powered interview platform
 
-Four agents work together in sequence:
+Four agents collaborate in a **GroupChat** (LLM selects who speaks next):
 1. **ResearchAgent** - Analyzes market competitors
 2. **AnalysisAgent** - Identifies key opportunities
 3. **BlueprintAgent** - Creates product design
 4. **ReviewerAgent** - Provides recommendations
 
-**Communication Style:** Conversational (agents chat back and forth)
+**Communication Style:** Conversational GroupChat (agents converse freely, reference each other's contributions, LLM-based speaker selection)
 
 ### Part 2: CrewAI - Travel Planning Workflow
 **Scenario:** Plan a 5-day trip to Iceland
@@ -45,16 +45,24 @@ Four agents form a "crew":
 
 ### **AutoGen** (Microsoft)
 - Framework for building multi-agent systems with LLMs
-- Agents communicate conversationally
-- Flexible workflow - agents can decide what to do next
-- Great for iterative, chat-like problem solving
+- Agents converse in a **GroupChat** managed by a **GroupChatManager**
+- LLM-based speaker selection — the model decides who speaks next
+- Great for iterative, conversational problem solving
 
 ```python
-from autogen import AssistantAgent, UserProxyAgent
+from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
 
-assistant = AssistantAgent(name="assistant", llm_config={"config_list": [...]})
-user_proxy = UserProxyAgent(name="user_proxy", human_input_mode="NEVER")
-user_proxy.initiate_chat(assistant, message="Your task here")
+# Create specialized agents
+researcher = AssistantAgent(name="Researcher", system_message="...", llm_config=llm_config)
+analyst = AssistantAgent(name="Analyst", system_message="...", llm_config=llm_config)
+user_proxy = UserProxyAgent(name="Admin", human_input_mode="NEVER", code_execution_config=False)
+
+# Assemble into a group chat
+groupchat = GroupChat(agents=[user_proxy, researcher, analyst], messages=[], max_round=12)
+manager = GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+
+# Start the multi-agent conversation
+user_proxy.initiate_chat(manager, message="Your task here")
 ```
 
 ### **CrewAI** (Crew Framework)
@@ -133,8 +141,7 @@ multi-agent/
 │
 ├── autogen/
 │   ├── config.py                      ← AutoGen configuration (uses shared_config)
-│   ├── autogen_simple_demo.py         ← RUN THIS: Simple demo
-│   └── autogen_interview_platform.py  ← Full implementation
+│   └── autogen_simple_demo.py         ← RUN THIS: GroupChat demo
 │
 └── crewai/
     └── crewai_demo.py                 ← RUN THIS: Travel planning demo
@@ -196,8 +203,8 @@ Task(
 ```
 
 **Workflow:** How agents interact and pass information
-- **Conversational** (AutoGen): Agents chat, debate, iterate
-- **Sequential** (CrewAI): Each agent completes task, passes output to next
+- **GroupChat** (AutoGen): Agents converse in a shared chat room, LLM picks the next speaker each turn
+- **Sequential** (CrewAI): Each agent completes an assigned task, output passes to next agent
 - **Parallel:** Multiple agents work simultaneously (advanced)
 
 ### Why Use Multiple Agents?
@@ -212,19 +219,20 @@ Task(
 
 | Aspect | AutoGen | CrewAI |
 |--------|---------|--------|
-| **Communication** | Conversational | Task-based |
-| **Workflow** | Flexible, agent-decided | Structured, sequential |
+| **Communication** | Conversational GroupChat | Task-based |
+| **Workflow** | Emergent, LLM-orchestrated | Structured, sequential |
+| **Orchestration** | GroupChatManager selects speakers | Crew executes tasks in order |
 | **Setup** | More code, more control | Less code, simpler |
-| **Best For** | Iterative problem-solving | Clear workflows |
-| **Agent Autonomy** | High (agents decide next steps) | Lower (follows task structure) |
+| **Best For** | Iterative, collaborative problem-solving | Clear, goal-oriented workflows |
+| **Agent Autonomy** | High (agents converse freely) | Lower (follows task structure) |
 | **Output Structure** | Unstructured conversation | Structured task outputs |
 | **Learning Curve** | Steeper | Gentler |
 
 ### Choose AutoGen If:
-- ✓ Problem requires iteration and refinement
-- ✓ Agents need to debate/discuss solutions
-- ✓ Output structure is uncertain upfront
-- ✓ You need fine-grained control
+- ✓ Problem requires iteration, debate, and refinement
+- ✓ Agents need to converse and build on each other's ideas
+- ✓ Speaker order should emerge dynamically (LLM-selected)
+- ✓ You need fine-grained control over agent interactions
 
 ### Choose CrewAI If:
 - ✓ Workflow is well-defined and sequential
@@ -242,34 +250,87 @@ Task(
 3. Run `crewai/crewai_demo.py`
 4. Compare the communication styles
 
-### Exercise 2: Modify Agent Roles
-**AutoGen:** Edit agent backstories in `autogen/config.py`
-```python
-RESEARCH_AGENT = {
-    "role": "Market Researcher",  # ← Modify this
-    "temperature": 0.7,
-}
-```
+### Exercise 2: Modify Agent Behavior
 
-**CrewAI:** Edit agent definitions in `crewai/crewai_demo.py`
+The goal is to observe how changing an agent's persona affects the group conversation (AutoGen) or task output (CrewAI).
+
+**AutoGen:** Edit `autogen/autogen_simple_demo.py` — modify the `ResearchAgent`'s `system_message`:
 ```python
-Agent(
-    role="Flight Specialist",  # ← Modify this
-    goal="...",
-    backstory="..."  # ← Add more detail here
+# Find this in _create_agents() and change the focus area:
+self.research_agent = autogen.AssistantAgent(
+    name="ResearchAgent",
+    system_message="""You are a market research analyst specializing in...
+    # ← Try changing the focus: instead of AI interview platforms,
+    #   focus on "AI-powered employee onboarding tools"
+    #   or change the competitors to research (Deel, Rippling, BambooHR)
+    """,
+    ...
+)
+```
+Run the demo again — observe how downstream agents (AnalysisAgent, BlueprintAgent) adapt their responses to the new research context without any changes to their own prompts.
+
+**CrewAI:** Edit `crewai/crewai_demo.py` — modify the `create_flight_agent()` function:
+```python
+return Agent(
+    role="Flight Specialist",
+    goal=f"...",
+    backstory="You are an experienced flight specialist..."
+    # ← Try adding constraints to the backstory:
+    #   "You always prioritize direct flights over connections."
+    #   "You focus on budget airlines and cost savings above all."
+    # Then observe how the flight recommendations change.
 )
 ```
 
-### Exercise 3: Add a New Task
-**For AutoGen:** Add a new agent to the workflow
-**For CrewAI:** Add a new task to the crew
+**Questions to answer:**
+- How does one agent's changed behavior ripple through to other agents?
+- In AutoGen, did the GroupChatManager still select speakers in the same order?
+- In CrewAI, did the budget agent's calculations reflect the flight agent's new priorities?
+
+### Exercise 3: Add a Fifth Agent
+
+Add a new specialist to each framework and observe how it changes the group dynamic.
+
+**AutoGen** — Add a `CostAnalyst` agent to the GroupChat in `autogen/autogen_simple_demo.py`:
+
+1. Create the agent in `_create_agents()`:
+```python
+self.cost_agent = autogen.AssistantAgent(
+    name="CostAnalyst",
+    system_message="""You are a financial analyst. After the BlueprintAgent presents features,
+estimate development costs and timeline for each feature. Provide a cost-benefit ranking.
+After your analysis, invite the ReviewerAgent to provide final recommendations.
+Keep your response under 400 words.""",
+    llm_config=self.llm_config,
+    description="Financial analyst who estimates development costs and ROI for proposed features.",
+)
+```
+
+2. Add it to the `agents` list in `_setup_groupchat()` (between BlueprintAgent and ReviewerAgent)
+
+3. Increase `max_round` from 8 to 10
+
+4. Run and observe: Does the GroupChatManager select the CostAnalyst at the right time? Does the ReviewerAgent incorporate cost data into its recommendations?
+
+**CrewAI** — Add a `LocalExpert` agent and task in `crewai/crewai_demo.py`:
+
+1. Create a new agent function that knows local customs, tips, and safety info
+2. Create a corresponding `Task` with a specific `expected_output`
+3. Add both to the `Crew` — place the task between itinerary and budget
+4. Run and observe: Does the budget agent account for the local expert's tips?
 
 ### Exercise 4: Custom Problem
-Try these scenarios with either framework:
-- Plan a 3-day conference agenda
-- Design a marketing strategy for a product
-- Create a research paper outline
-- Plan a software architecture
+
+Rewrite one of the demos for a completely different domain. Pick one:
+- **Conference planning** (speakers, venues, schedule, sponsorship)
+- **Software architecture** (requirements, design, implementation plan, risk assessment)
+- **Marketing campaign** (audience research, messaging, channels, budget)
+
+Steps:
+1. Keep the same framework structure (GroupChat for AutoGen, Crew for CrewAI)
+2. Change agent roles, system messages, and the initial prompt
+3. Run both frameworks on the same problem
+4. Compare: Which framework produced a more useful result for your chosen domain? Why?
 
 ---
 
