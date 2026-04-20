@@ -1,34 +1,27 @@
 """
-CrewAI Multi-Agent Demo: Travel Planning System (REAL API VERSION)
-==================================================================
+CrewAI Multi-Agent Demo: Travel Planning System
+================================================
 
-This implementation uses REAL OpenAI API calls and web search to gather
-actual travel information for planning a 5-day trip to Iceland.
-
-Agents use:
-1. OpenAI GPT-4 for intelligent research and recommendations
-2. Web search for real-time flight, hotel, and attraction data
-3. Real travel data from current sources
+This demonstrates CrewAI's task-based multi-agent orchestration by planning
+a 5-day trip to Iceland. Each agent has specialized tools that return
+structured travel data, which the LLM then uses to create recommendations.
 
 Agents:
-1. FlightAgent - Flight Specialist (researches real flight options)
-2. HotelAgent - Accommodation Specialist (finds real hotels)
-3. ItineraryAgent - Travel Planner (creates realistic itineraries)
-4. BudgetAgent - Financial Advisor (analyzes real costs)
+1. FlightAgent - Flight Specialist (researches flight options)
+2. HotelAgent - Accommodation Specialist (finds hotels)
+3. ItineraryAgent - Travel Planner (creates day-by-day itineraries)
+4. BudgetAgent - Financial Advisor (analyzes total costs)
 
 Configuration:
 - Uses shared configuration from the root .env file
-- Environment variables set in /Users/pranavhharish/Desktop/IS-492/multi-agent/.env
 """
 
 import os
 import sys
-import json
 from pathlib import Path
 from datetime import datetime
 from crewai import Agent, Task, Crew
 from crewai.tools import tool
-import requests
 
 # Add parent directory to path to import shared_config
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -44,98 +37,198 @@ from shared_config import Config, validate_config
 @tool
 def search_flight_prices(destination: str, departure_city: str = "New York") -> str:
     """
-    Search for real flight prices and options to a destination.
-    Uses web search to find current flight information from major booking sites.
+    Search for flight prices and options to a destination.
+    Returns current flight information from major booking sites.
     """
-    search_query = f"flights from {departure_city} to {destination} prices 2026 best options"
+    # Static flight data simulating real search results
+    flights_data = {
+        "Iceland": [
+            {"airline": "Icelandair", "route": f"{departure_city} (JFK) → Reykjavik (KEF)", "type": "Direct", "duration": "5h 30m", "price": "$485 round-trip", "schedule": "Daily departures at 8:30 PM"},
+            {"airline": "Delta Air Lines", "route": f"{departure_city} (JFK) → Reykjavik (KEF)", "type": "Direct", "duration": "5h 45m", "price": "$612 round-trip", "schedule": "Mon/Wed/Fri/Sat at 10:15 PM"},
+            {"airline": "PLAY Airlines", "route": f"{departure_city} (SWF) → Reykjavik (KEF)", "type": "Direct (budget)", "duration": "5h 20m", "price": "$349 round-trip", "schedule": "Tue/Thu/Sun at 11:00 PM, no checked bags included"},
+            {"airline": "Norse Atlantic", "route": f"{departure_city} (JFK) → Reykjavik (KEF)", "type": "Direct (budget)", "duration": "5h 35m", "price": "$389 round-trip", "schedule": "Daily at 7:45 PM, carry-on only"},
+            {"airline": "British Airways", "route": f"{departure_city} (JFK) → London (LHR) → Reykjavik (KEF)", "type": "1 stop", "duration": "11h 20m", "price": "$578 round-trip", "schedule": "Daily, 4h layover in London"},
+        ],
+        "default": [
+            {"airline": "United Airlines", "route": f"{departure_city} → {destination}", "type": "Direct", "duration": "8h 00m", "price": "$650 round-trip", "schedule": "Daily"},
+            {"airline": "Delta Air Lines", "route": f"{departure_city} → {destination}", "type": "1 stop", "duration": "11h 30m", "price": "$520 round-trip", "schedule": "Daily"},
+            {"airline": "Budget Air", "route": f"{departure_city} → {destination}", "type": "Direct (budget)", "duration": "8h 15m", "price": "$410 round-trip", "schedule": "Mon/Wed/Fri"},
+        ],
+    }
 
-    # In production, this would use a real flight API (Skyscanner, Kayak, etc.)
-    # For now, the LLM will use this to inform its research
-    return f"""
-    Research task: Find flights from {departure_city} to {destination}.
+    key = "Iceland" if "iceland" in destination.lower() or "reykjavik" in destination.lower() else "default"
+    results = flights_data[key]
 
-    Please research and provide:
-    1. Current flight options with prices (check Kayak, Skyscanner, Google Flights)
-    2. Airlines operating these routes
-    3. Flight durations and layover information
-    4. Best booking times and price trends
-    5. Seasonal pricing variations
-
-    Focus on realistic, current pricing for January 2026 travel.
-    """
+    output = f"Flight Search Results: {departure_city} → {destination}\n"
+    output += f"{'='*60}\n"
+    for i, flight in enumerate(results, 1):
+        output += f"\n{i}. {flight['airline']}\n"
+        output += f"   Route: {flight['route']}\n"
+        output += f"   Type: {flight['type']} | Duration: {flight['duration']}\n"
+        output += f"   Price: {flight['price']}\n"
+        output += f"   Schedule: {flight['schedule']}\n"
+    output += f"\nNote: Prices as of January 2026. Book 6-8 weeks in advance for best rates."
+    return output
 
 
 @tool
 def search_hotel_options(location: str, check_in_date: str) -> str:
     """
-    Search for real hotel options using web search.
-    Provides current hotel availability and pricing information.
+    Search for hotel options in a location.
+    Returns current hotel availability and pricing information.
     """
-    search_query = f"hotels in {location} {check_in_date} reviews ratings prices 2026"
+    # Static hotel data simulating real search results
+    hotels_data = {
+        "Reykjavik": [
+            {"name": "CenterHotel Midgardur", "stars": 4, "rating": 8.7, "reviews": 2341, "price": "$189/night", "location": "Downtown Reykjavik, 2 min walk to Hallgrimskirkja", "amenities": "Free WiFi, breakfast included, restaurant, bar, 24h front desk", "style": "Mid-range"},
+            {"name": "Canopy by Hilton Reykjavik", "stars": 4, "rating": 9.1, "reviews": 1876, "price": "$265/night", "location": "Smidjustigur 4, city center", "amenities": "Rooftop bar, gym, spa, restaurant, free WiFi, heated floors", "style": "Upscale"},
+            {"name": "Kex Hostel", "stars": 2, "rating": 8.2, "reviews": 3102, "price": "$85/night (private room)", "location": "Skulagata 28, harbor district", "amenities": "Shared lounge, bar, free WiFi, bike rental, live music events", "style": "Budget"},
+            {"name": "Hotel Borg by Keahotels", "stars": 5, "rating": 9.3, "reviews": 1204, "price": "$385/night", "location": "Posthusstraeti 11, overlooking Austurvollur Square", "amenities": "Art deco design, spa, fine dining, butler service, airport transfer", "style": "Luxury"},
+            {"name": "Reykjavik Lights Hotel", "stars": 3, "rating": 8.4, "reviews": 1567, "price": "$145/night", "location": "Sudurlandsbraut 12, 10 min bus to center", "amenities": "Free parking, breakfast buffet, northern lights wake-up call, free WiFi", "style": "Mid-range"},
+        ],
+        "default": [
+            {"name": "City Center Hotel", "stars": 4, "rating": 8.5, "reviews": 1200, "price": "$175/night", "location": f"Downtown {location}", "amenities": "Free WiFi, breakfast, gym", "style": "Mid-range"},
+            {"name": "Budget Inn", "stars": 2, "rating": 7.8, "reviews": 890, "price": "$79/night", "location": f"Near transit, {location}", "amenities": "Free WiFi, shared kitchen", "style": "Budget"},
+            {"name": "Grand Luxury Resort", "stars": 5, "rating": 9.2, "reviews": 650, "price": "$350/night", "location": f"Premium district, {location}", "amenities": "Spa, pool, fine dining, concierge", "style": "Luxury"},
+        ],
+    }
 
-    return f"""
-    Research task: Find hotels in {location} for check-in {check_in_date}.
+    key = "Reykjavik" if "reykjavik" in location.lower() or "iceland" in location.lower() else "default"
+    results = hotels_data[key]
 
-    Please research and provide:
-    1. Top-rated hotels with guest reviews (check Booking.com, TripAdvisor, Google Hotels)
-    2. Current pricing for 5-night stays
-    3. Hotel amenities and facilities
-    4. Location details and proximity to attractions
-    5. Guest ratings and recommendation reasons
-
-    Include budget, mid-range, and luxury options.
-    Focus on hotels with high ratings and realistic current prices.
-    """
+    output = f"Hotel Search Results: {location} (check-in: {check_in_date})\n"
+    output += f"{'='*60}\n"
+    for i, hotel in enumerate(results, 1):
+        output += f"\n{i}. {hotel['name']} {'⭐' * hotel['stars']}\n"
+        output += f"   Rating: {hotel['rating']}/10 ({hotel['reviews']} reviews) | Style: {hotel['style']}\n"
+        output += f"   Price: {hotel['price']}\n"
+        output += f"   Location: {hotel['location']}\n"
+        output += f"   Amenities: {hotel['amenities']}\n"
+    output += f"\nNote: Prices for January 2026. 5-night stay recommended for best value."
+    return output
 
 
 @tool
 def search_attractions_activities(destination: str) -> str:
     """
-    Search for real attractions and activities in a destination.
-    Provides comprehensive information about popular sites and experiences.
+    Search for attractions and activities in a destination.
+    Returns popular sites, tours, and experiences with pricing.
     """
-    search_query = f"{destination} attractions activities tours things to do 2026"
+    # Static attractions data simulating real search results
+    attractions_data = {
+        "Iceland": [
+            {"name": "Golden Circle Tour", "type": "Day Tour", "duration": "8 hours", "price": "$85/person", "description": "Visit Thingvellir National Park, Geysir geothermal area, and Gullfoss waterfall. Includes hotel pickup.", "rating": 4.8},
+            {"name": "Blue Lagoon", "type": "Spa/Attraction", "duration": "2-3 hours", "price": "$75-115/person (Comfort-Premium)", "description": "World-famous geothermal spa with silica mud masks and in-water bar. Book 2+ weeks in advance.", "rating": 4.5},
+            {"name": "South Coast & Black Sand Beach", "type": "Day Tour", "duration": "10 hours", "price": "$95/person", "description": "Seljalandsfoss and Skogafoss waterfalls, Reynisfjara black sand beach, Vik village.", "rating": 4.9},
+            {"name": "Northern Lights Tour", "type": "Evening Tour", "duration": "3-4 hours", "price": "$65/person", "description": "Guided bus tour to dark-sky locations. Free rebooking if no lights visible. Best Oct-Mar.", "rating": 4.3},
+            {"name": "Glacier Hiking on Solheimajokull", "type": "Adventure", "duration": "3 hours", "price": "$110/person", "description": "Guided glacier walk with crampons and ice axes provided. No experience needed. Min age 8.", "rating": 4.9},
+            {"name": "Whale Watching from Reykjavik", "type": "Boat Tour", "duration": "3 hours", "price": "$79/person", "description": "See humpback whales, dolphins, and puffins (summer). Warm overalls provided. 95% sighting rate.", "rating": 4.6},
+            {"name": "Snorkeling in Silfra Fissure", "type": "Adventure", "duration": "3 hours", "price": "$145/person", "description": "Snorkel between tectonic plates in crystal-clear glacial water (2°C). Dry suit provided.", "rating": 4.8},
+            {"name": "Hallgrimskirkja Church Tower", "type": "Landmark", "duration": "30 min", "price": "$12/person", "description": "Iconic Reykjavik church with elevator to observation deck. Panoramic city views.", "rating": 4.4},
+            {"name": "Reykjavik Food Walk", "type": "Food Tour", "duration": "3 hours", "price": "$95/person", "description": "6 tastings including fermented shark, lamb soup, skyr, and craft beer. Small groups.", "rating": 4.7},
+            {"name": "Ice Cave Exploration (Vatnajokull)", "type": "Adventure", "duration": "Full day (12h from Reykjavik)", "price": "$250/person", "description": "Visit naturally-formed blue ice caves inside Europe's largest glacier. Nov-Mar only.", "rating": 4.9},
+        ],
+        "default": [
+            {"name": "City Walking Tour", "type": "Tour", "duration": "3 hours", "price": "$40/person", "description": f"Guided walking tour of {destination} highlights.", "rating": 4.5},
+            {"name": "Local Food Experience", "type": "Food Tour", "duration": "2.5 hours", "price": "$75/person", "description": "Taste local cuisine with a knowledgeable guide.", "rating": 4.7},
+            {"name": "Nature Day Trip", "type": "Day Tour", "duration": "8 hours", "price": "$95/person", "description": f"Full-day excursion to natural attractions near {destination}.", "rating": 4.6},
+        ],
+    }
 
-    return f"""
-    Research task: Find attractions and activities in {destination}.
+    key = "Iceland" if "iceland" in destination.lower() or "reykjavik" in destination.lower() else "default"
+    results = attractions_data[key]
 
-    Please research and provide:
-    1. Top-rated attractions and their estimated visit times
-    2. Popular day tours and multi-day excursions
-    3. Outdoor activities (hiking, water sports, wildlife viewing)
-    4. Cultural sites and local experiences
-    5. Typical costs for tours and entrance fees
-    6. Best time to visit each location
-    7. Transportation options between sites
-
-    Include hidden gems and less-known but highly-rated activities.
-    Focus on realistic itineraries that can be completed in 5 days.
-    """
+    output = f"Attractions & Activities: {destination}\n"
+    output += f"{'='*60}\n"
+    for i, item in enumerate(results, 1):
+        output += f"\n{i}. {item['name']} ({item['type']})\n"
+        output += f"   Duration: {item['duration']} | Price: {item['price']} | Rating: {item['rating']}/5.0\n"
+        output += f"   {item['description']}\n"
+    output += f"\nTip: Book popular tours 1-2 weeks in advance, especially Golden Circle and Blue Lagoon."
+    return output
 
 
 @tool
 def search_travel_costs(destination: str) -> str:
     """
-    Search for real travel costs and budgeting information.
-    Provides current pricing for meals, activities, and transportation.
+    Search for travel costs and budgeting information.
+    Returns current pricing for meals, activities, and transportation.
     """
-    search_query = f"{destination} travel costs budget prices meals transport 2025"
+    # Static cost data simulating real search results
+    costs_data = {
+        "Iceland": {
+            "currency": "Icelandic Krona (ISK). 1 USD = ~137 ISK. Credit cards accepted everywhere.",
+            "meals": [
+                {"category": "Budget", "examples": "Hot dogs (Baejarins Beztu), gas station sandwiches, grocery store meals", "avg_cost": "$15-25/meal"},
+                {"category": "Mid-range", "examples": "Cafe meals, fish & chips, lamb soup at local restaurants", "avg_cost": "$30-50/meal"},
+                {"category": "Fine dining", "examples": "Grillid, Dill (Michelin), Matur og Drykkur", "avg_cost": "$80-150/meal"},
+            ],
+            "transport": [
+                {"type": "Airport bus (Flybus)", "cost": "$28 one-way to Reykjavik"},
+                {"type": "Reykjavik city bus (Straeto)", "cost": "$4.20/ride or $24/3-day pass"},
+                {"type": "Rental car (compact)", "cost": "$65-95/day (add $15/day for insurance)"},
+                {"type": "Rental car (4WD, for highlands)", "cost": "$120-180/day"},
+                {"type": "Taxi (Reykjavik)", "cost": "$20-35 within city center"},
+                {"type": "Domestic flight to Akureyri", "cost": "$120-180 round-trip"},
+            ],
+            "daily_budgets": [
+                {"level": "Budget", "per_day": "$150-200/day", "notes": "Hostel, bus tours, grocery meals, free attractions"},
+                {"level": "Mid-range", "per_day": "$300-400/day", "notes": "3-4 star hotel, guided tours, restaurant meals"},
+                {"level": "Luxury", "per_day": "$600+/day", "notes": "5-star hotel, private tours, fine dining, spa visits"},
+            ],
+            "tips": [
+                "Tap water is free and excellent — no need to buy bottled water",
+                "Happy hour (15:00-18:00) cuts drink prices by 40-50%",
+                "Bonus/Kronan supermarkets are cheapest for groceries",
+                "Free attractions: Hallgrimskirkja exterior, Harpa concert hall, city walking paths",
+                "Gas is expensive (~$8.50/gallon) — factor into rental car budget",
+            ],
+        },
+        "default": {
+            "currency": "Local currency. Credit cards widely accepted.",
+            "meals": [
+                {"category": "Budget", "examples": "Street food, fast casual", "avg_cost": "$10-20/meal"},
+                {"category": "Mid-range", "examples": "Sit-down restaurants", "avg_cost": "$25-45/meal"},
+                {"category": "Fine dining", "examples": "Upscale restaurants", "avg_cost": "$60-120/meal"},
+            ],
+            "transport": [
+                {"type": "Public transit", "cost": "$3-5/ride"},
+                {"type": "Taxi", "cost": "$15-30 within city"},
+                {"type": "Rental car", "cost": "$50-80/day"},
+            ],
+            "daily_budgets": [
+                {"level": "Budget", "per_day": "$100-150/day", "notes": "Hostel, public transit, street food"},
+                {"level": "Mid-range", "per_day": "$200-300/day", "notes": "Hotel, tours, restaurants"},
+                {"level": "Luxury", "per_day": "$500+/day", "notes": "Luxury hotel, private tours, fine dining"},
+            ],
+            "tips": ["Research local discount passes", "Eat where locals eat", "Book tours in advance for better rates"],
+        },
+    }
 
-    return f"""
-    Research task: Find cost information for a trip to {destination}.
+    key = "Iceland" if "iceland" in destination.lower() or "reykjavik" in destination.lower() else "default"
+    data = costs_data[key]
 
-    Please research and provide:
-    1. Average meal costs (budget, mid-range, restaurants)
-    2. Public transportation costs and rental car prices
-    3. Tour and activity pricing
-    4. Entrance fees for attractions
-    5. Estimated daily costs for different budget levels
-    6. Money-saving tips and best budget periods
-    7. Currency exchange rates and payment methods
+    output = f"Travel Cost Guide: {destination}\n"
+    output += f"{'='*60}\n"
+    output += f"\nCurrency: {data['currency']}\n"
 
-    Provide realistic, current pricing information for 2025.
-    Focus on actual costs travelers can expect.
-    """
+    output += f"\n--- Meal Costs ---\n"
+    for meal in data["meals"]:
+        output += f"  {meal['category']}: {meal['avg_cost']} ({meal['examples']})\n"
+
+    output += f"\n--- Transportation ---\n"
+    for t in data["transport"]:
+        output += f"  {t['type']}: {t['cost']}\n"
+
+    output += f"\n--- Daily Budget Estimates (per person) ---\n"
+    for b in data["daily_budgets"]:
+        output += f"  {b['level']}: {b['per_day']} — {b['notes']}\n"
+
+    output += f"\n--- Money-Saving Tips ---\n"
+    for i, tip in enumerate(data["tips"], 1):
+        output += f"  {i}. {tip}\n"
+
+    return output
 
 
 # ============================================================================
